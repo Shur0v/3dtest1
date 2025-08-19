@@ -1,103 +1,214 @@
-import Image from "next/image";
+"use client"
+import { Canvas } from "@react-three/fiber";
+import { OrbitControls } from "@react-three/drei";
+import { useRef, useState } from "react";
+import { useFrame } from "@react-three/fiber";
+import { Mesh } from "three";
+import { useLoader } from "@react-three/fiber";
+import { TextureLoader } from "three";
+
+const RotatingBall = ({ color, emissiveIntensity, textureUrl }: { color: string, emissiveIntensity: number, textureUrl: string | null }) => {
+
+  const meshRef = useRef<Mesh>(null)
+  
+  // Always call useLoader, but with a fallback URL when textureUrl is null
+  const texture = useLoader(TextureLoader, textureUrl || 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==');
+
+  useFrame( () => {
+
+    if( meshRef.current ) {
+      meshRef.current.rotation.x += 0.01
+      meshRef.current.rotation.y += 0.01
+    }
+
+  } )
+
+  return (
+    <mesh ref={meshRef}>
+      <sphereGeometry args={[1, 32, 32]} />
+      <meshStandardMaterial 
+        color={textureUrl ? "#ffffff" : color} 
+        emissive={textureUrl ? "#000000" : color} 
+        emissiveIntensity={textureUrl ? 0 : emissiveIntensity}
+        map={textureUrl ? texture : null}
+      />
+    </mesh>
+  )
+}
 
 export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  // Default/Standard values
+  const defaultValues = {
+    objectColor: "#F8F8FF", // Ghost white for marble look
+    emissiveIntensity: 0,
+    lightIntensity: 5,
+    lightColor: "#ffffff",
+    isLightOn: true,
+    textureUrl: null
+  };
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+  const [objectColor, setObjectColor] = useState(defaultValues.objectColor);
+  const [emissiveIntensity, setEmissiveIntensity] = useState(defaultValues.emissiveIntensity);
+  const [lightIntensity, setLightIntensity] = useState(defaultValues.lightIntensity);
+  const [lightColor, setLightColor] = useState(defaultValues.lightColor);
+  const [isLightOn, setIsLightOn] = useState(defaultValues.isLightOn);
+  const [textureUrl, setTextureUrl] = useState<string | null>(defaultValues.textureUrl);
+
+  // Handle image upload
+  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setTextureUrl(url);
+    }
+  };
+
+  // Reset all values to default
+  const resetToDefault = () => {
+    setObjectColor(defaultValues.objectColor);
+    setEmissiveIntensity(defaultValues.emissiveIntensity);
+    setLightIntensity(defaultValues.lightIntensity);
+    setLightColor(defaultValues.lightColor);
+    setIsLightOn(defaultValues.isLightOn);
+    setTextureUrl(defaultValues.textureUrl);
+  };
+
+  return (
+    <div className="relative w-screen h-screen">
+      <Canvas className="w-full h-full"> 
+        
+        <OrbitControls enableZoom enablePan enableRotate />
+        <directionalLight 
+          position={[1, 1, 1]} 
+          intensity={isLightOn ? lightIntensity : 0} 
+          color={lightColor} 
+        />
+        <color attach="background" args={["#f0f0f0"]} />
+
+        <RotatingBall color={objectColor} emissiveIntensity={emissiveIntensity} textureUrl={textureUrl} />
+        
+      </Canvas>
+
+      {/* Control Panel */}
+      <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm rounded-lg p-6 shadow-lg w-80 space-y-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-lg font-semibold text-gray-800">Controls</h3>
+          <button
+            onClick={resetToDefault}
+            className="px-3 py-1 bg-red-500 text-white text-sm rounded-md hover:bg-red-600 transition-colors"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+            Reset
+          </button>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
+
+        {/* Image Upload */}
+        <div className="space-y-3">
+          <label className="block text-sm font-medium text-gray-700">Upload Texture</label>
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleImageUpload}
+            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
           />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
+          {textureUrl && (
+            <div className="flex items-center space-x-2">
+              <span className="text-sm text-green-600">✓ Texture applied</span>
+              <button
+                onClick={() => setTextureUrl(null)}
+                className="text-xs text-red-500 hover:text-red-700"
+              >
+                Remove
+              </button>
+            </div>
+          )}
+        </div>
+        
+        {/* Object Color Control */}
+        <div className="space-y-3">
+          <label className="block text-sm font-medium text-gray-700">
+            Ball Color {textureUrl && "(Hidden when texture is applied)"}
+          </label>
+          <div className="flex items-center space-x-3">
+            <input
+              type="color"
+              value={objectColor}
+              onChange={(e) => setObjectColor(e.target.value)}
+              className="w-12 h-8 rounded border border-gray-300 cursor-pointer"
+              disabled={!!textureUrl}
+            />
+            <span className="text-sm text-gray-600">{objectColor}</span>
+          </div>
+        </div>
+
+        {/* Emissive Intensity Control */}
+        <div className="space-y-3">
+          <label className="block text-sm font-medium text-gray-700">
+            Glow Intensity {textureUrl && "(Disabled when texture is applied)"}
+          </label>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.1"
+            value={emissiveIntensity}
+            onChange={(e) => setEmissiveIntensity(parseFloat(e.target.value))}
+            className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+            disabled={!!textureUrl}
           />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          <span className="text-sm text-gray-600">{emissiveIntensity.toFixed(1)}</span>
+        </div>
+
+        {/* Light Controls */}
+        <div className="space-y-4 border-t pt-4">
+          <h4 className="text-md font-medium text-gray-800">Light Effects</h4>
+          
+          {/* Light On/Off Switch */}
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium text-gray-700">Light Power</label>
+            <button
+              onClick={() => setIsLightOn(!isLightOn)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                isLightOn ? 'bg-blue-600' : 'bg-gray-200'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  isLightOn ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+
+          {/* Light Color Control */}
+          <div className="space-y-3">
+            <label className="block text-sm font-medium text-gray-700">Light Color</label>
+            <div className="flex items-center space-x-3">
+              <input
+                type="color"
+                value={lightColor}
+                onChange={(e) => setLightColor(e.target.value)}
+                className="w-12 h-8 rounded border border-gray-300 cursor-pointer"
+              />
+              <span className="text-sm text-gray-600">{lightColor}</span>
+            </div>
+          </div>
+
+          {/* Light Intensity Control */}
+          <div className="space-y-3">
+            <label className="block text-sm font-medium text-gray-700">Light Intensity</label>
+            <input
+              type="range"
+              min="0"
+              max="20"
+              step="1"
+              value={lightIntensity}
+              onChange={(e) => setLightIntensity(parseInt(e.target.value))}
+              className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+            />
+            <span className="text-sm text-gray-600">{lightIntensity}</span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
